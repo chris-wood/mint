@@ -93,13 +93,13 @@ var (
 			Suite:      TLS_AES_128_GCM_SHA256,
 			Cipher:     newAESGCM,
 			Hash:       crypto.SHA256,
-			KeyLengths: map[string]int{labelForKey: 16, labelForIV: 12}, // , labelForSN: 16},
+			KeyLengths: map[string]int{labelForKey: 16, labelForIV: 12, labelForSN: 16},
 		},
 		TLS_AES_256_GCM_SHA384: {
 			Suite:      TLS_AES_256_GCM_SHA384,
 			Cipher:     newAESGCM,
 			Hash:       crypto.SHA384,
-			KeyLengths: map[string]int{labelForKey: 32, labelForIV: 12}, // , labelForSN: 16},
+			KeyLengths: map[string]int{labelForKey: 32, labelForIV: 12, labelForSN: 16},
 		},
 	}
 

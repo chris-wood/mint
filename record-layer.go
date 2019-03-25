@@ -465,15 +465,20 @@ func (r *DefaultRecordLayer) nextRecord(allowOldEpoch bool) (*TLSPlaintext, erro
 			epoch = Epoch(seq >> 48)
 		} else {
 			epoch = Epoch(header[0] & 0x03) // lower two bits of the header
-			seq, _ = decodeUint(header[1:3], 2)
-			seq |= uint64(epoch) << 48
-
-			// sequenceMask, _ := DeriveMask(r.snKey, pt.fragment[0:16]) // 16 bytes
-			// logf(logTypeIO, "%s Recovering SN=%x header=%x sequenceMask=%x", r.label, header[1:3], sequenceMask)
-			// seqBytes := xor(header[1:3], sequenceMask[0:2])
-			// seq = uint64(seqBytes[0] << 8) | uint64(seqBytes[1])
+			// seq, _ = decodeUint(header[1:3], 2)
 			// seq |= uint64(epoch) << 48
-			// panic("at the disco")
+
+			sequenceMask, err := DeriveMask(r.snKey, pt.fragment[0:16]) // 16 bytes
+			if err != nil {
+				panic(err)
+			}
+			logf(logTypeIO, "%s Recovering header=%x sequenceMask=%x", r.label, header[1:3], sequenceMask)
+			seqBytes := xor(header[1:3], sequenceMask[0:2])
+			header[1] = seqBytes[0]
+			header[2] = seqBytes[1]
+			seq = uint64(seqBytes[0] << 8) | uint64(seqBytes[1])
+			seq |= uint64(epoch) << 48
+			logf(logTypeIO, "%s Recovered SN=%x seqBytes=%x", r.label, seq, seqBytes)
 		}
 
 		// Look up the cipher suite from the epoch
@@ -549,7 +554,6 @@ func (r *DefaultRecordLayer) writeRecordWithPadding(pt *TLSPlaintext, cipher *ci
 			header[0] = 0x2C // 001011EE
 			header[0] |= uint8(uint16(cipher.epoch) & uint16(0x03))
 			encodeUint(seq, 2, header[1:])
-			// panic(fmt.Sprintf("Sequence: %x %x", seq, header[1:2]))
 			encodeUint(uint64(length), 2, header[3:])
 			isPlaintext = false
 		} else {
@@ -575,12 +579,15 @@ func (r *DefaultRecordLayer) writeRecordWithPadding(pt *TLSPlaintext, cipher *ci
 		ciphertext = pt.fragment
 	}
 
-	if isPlaintext {
-		// sequenceMask, _ := DeriveMask(r.snKey, ciphertext[0:16]) // 16 bytes
-		// seqBytes := xor(header[1:3], sequenceMask[0:2])
-		// header[1] = seqBytes[0]
-		// header[2] = seqBytes[1]
-		// logf(logTypeVerbose, "%s seq=%x mask=%x seqBytes=%x header=%x", r.label, seq, sequenceMask, seqBytes, header[1:3])
+	if !isPlaintext {
+		sequenceMask, err := DeriveMask(r.snKey, ciphertext[0:16]) // 16 bytes
+		if err != nil {
+			panic(err)
+		}
+		seqBytes := xor(header[1:3], sequenceMask[0:2])
+		header[1] = seqBytes[0]
+		header[2] = seqBytes[1]
+		logf(logTypeVerbose, "%s seq=%x mask=%x seqBytes=%x header=%x", r.label, seq, sequenceMask, seqBytes, header[1:3])
 	}
 
 	if len(ciphertext) > maxFragmentLen {
