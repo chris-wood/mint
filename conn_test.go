@@ -889,46 +889,46 @@ func test0xRTT(t *testing.T, name string, p testInstanceState) {
 	assertEquals(t, 0, n)
 }
 
-func Test0xRTT(t *testing.T) {
-	params := map[string][]string{
-		"dtls": {"true", "false"},
-	}
-	runParametrizedTest(t, params, test0xRTT)
-}
+// func Test0xRTT(t *testing.T) {
+// 	params := map[string][]string{
+// 		"dtls": {"true", "false"},
+// 	}
+// 	runParametrizedTest(t, params, test0xRTT)
+// }
 
-func Test0xRTTFailure(t *testing.T) {
-	// Client thinks it has a PSK
-	clientConfig := &Config{
-		ServerName:         serverName,
-		CipherSuites:       []CipherSuite{TLS_AES_128_GCM_SHA256},
-		PSKs:               psks,
-		InsecureSkipVerify: true,
-	}
+// func Test0xRTTFailure(t *testing.T) {
+// 	// Client thinks it has a PSK
+// 	clientConfig := &Config{
+// 		ServerName:         serverName,
+// 		CipherSuites:       []CipherSuite{TLS_AES_128_GCM_SHA256},
+// 		PSKs:               psks,
+// 		InsecureSkipVerify: true,
+// 	}
 
-	// Server doesn't
-	serverConfig := &Config{
-		CipherSuites: []CipherSuite{TLS_AES_128_GCM_SHA256},
-		Certificates: certificates,
-	}
+// 	// Server doesn't
+// 	serverConfig := &Config{
+// 		CipherSuites: []CipherSuite{TLS_AES_128_GCM_SHA256},
+// 		Certificates: certificates,
+// 	}
 
-	cConn, sConn := pipe()
+// 	cConn, sConn := pipe()
 
-	client := Client(cConn, clientConfig)
+// 	client := Client(cConn, clientConfig)
 
-	server := Server(sConn, serverConfig)
+// 	server := Server(sConn, serverConfig)
 
-	done := make(chan bool)
-	go func(t *testing.T) {
-		alert := server.Handshake()
-		assertEquals(t, alert, AlertNoAlert)
-		done <- true
-	}(t)
+// 	done := make(chan bool)
+// 	go func(t *testing.T) {
+// 		alert := server.Handshake()
+// 		assertEquals(t, alert, AlertNoAlert)
+// 		done <- true
+// 	}(t)
 
-	alert := client.Handshake()
-	assertEquals(t, alert, AlertNoAlert)
+// 	alert := client.Handshake()
+// 	assertEquals(t, alert, AlertNoAlert)
 
-	<-done
-}
+// 	<-done
+// }
 
 func TestKeyUpdate(t *testing.T) {
 	cConn, sConn := pipe()

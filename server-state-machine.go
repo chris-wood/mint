@@ -561,6 +561,7 @@ func (state serverStateNegotiated) Next(_ handshakeMessageReader) (HandshakeStat
 	handshakeSecret := HkdfExtract(params.Hash, preHandshakeSecret, state.dhSecret)
 	clientHandshakeTrafficSecret := deriveSecret(params, handshakeSecret, labelClientHandshakeTrafficSecret, h2)
 	serverHandshakeTrafficSecret := deriveSecret(params, handshakeSecret, labelServerHandshakeTrafficSecret, h2)
+	sequenceNumberSecret := deriveSecret(params, handshakeSecret, labelSequenceNumberEncryption, h0)
 	preMasterSecret := deriveSecret(params, handshakeSecret, labelDerived, h0)
 	masterSecret := HkdfExtract(params.Hash, preMasterSecret, zero)
 
@@ -568,6 +569,7 @@ func (state serverStateNegotiated) Next(_ handshakeMessageReader) (HandshakeStat
 	logf(logTypeCrypto, "handshake secret: [%d] %x", len(handshakeSecret), handshakeSecret)
 	logf(logTypeCrypto, "client handshake traffic secret: [%d] %x", len(clientHandshakeTrafficSecret), clientHandshakeTrafficSecret)
 	logf(logTypeCrypto, "server handshake traffic secret: [%d] %x", len(serverHandshakeTrafficSecret), serverHandshakeTrafficSecret)
+	logf(logTypeCrypto, "sn secret: [%d] %x", len(sequenceNumberSecret), sequenceNumberSecret)
 	logf(logTypeCrypto, "master secret: [%d] %x", len(masterSecret), masterSecret)
 
 	clientHandshakeKeys := makeTrafficKeys(params, clientHandshakeTrafficSecret)
@@ -753,6 +755,7 @@ func (state serverStateNegotiated) Next(_ handshakeMessageReader) (HandshakeStat
 		clientTrafficSecret:          clientTrafficSecret,
 		serverTrafficSecret:          serverTrafficSecret,
 		exporterSecret:               exporterSecret,
+		sequenceNumberSecret:         sequenceNumberSecret,
 	}
 	if state.Params.RejectedEarlyData {
 		nextState = serverStateReadPastEarlyData{
@@ -774,6 +777,7 @@ type serverStateWaitEOED struct {
 	clientTrafficSecret          []byte
 	serverTrafficSecret          []byte
 	exporterSecret               []byte
+	sequenceNumberSecret         []byte
 }
 
 var _ HandshakeState = &serverStateWaitEOED{}
@@ -897,6 +901,7 @@ type serverStateWaitFlight2 struct {
 	clientTrafficSecret          []byte
 	serverTrafficSecret          []byte
 	exporterSecret               []byte
+	sequenceNumberSecret         []byte
 }
 
 var _ HandshakeState = &serverStateWaitFlight2{}

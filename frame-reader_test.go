@@ -17,12 +17,12 @@ func (h simpleHeader) defaultReadLen() int {
 	return 1024
 }
 
-func (h simpleHeader) frameLen(hdr []byte) (int, error) {
+func (h simpleHeader) frameLen(hdr []byte) (int, int, error) {
 	if len(hdr) != 2 {
 		panic("Assert!")
 	}
 
-	return (int(hdr[0]) << 8) | int(hdr[1]), nil
+	return (int(hdr[0]) << 8) | int(hdr[1]), 0, nil
 }
 
 func checkFrame(t *testing.T, hdr []byte, body []byte) {

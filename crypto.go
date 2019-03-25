@@ -93,13 +93,13 @@ var (
 			Suite:      TLS_AES_128_GCM_SHA256,
 			Cipher:     newAESGCM,
 			Hash:       crypto.SHA256,
-			KeyLengths: map[string]int{labelForKey: 16, labelForIV: 12},
+			KeyLengths: map[string]int{labelForKey: 16, labelForIV: 12}, // , labelForSN: 16},
 		},
 		TLS_AES_256_GCM_SHA384: {
 			Suite:      TLS_AES_256_GCM_SHA384,
 			Cipher:     newAESGCM,
 			Hash:       crypto.SHA384,
-			KeyLengths: map[string]int{labelForKey: 32, labelForIV: 12},
+			KeyLengths: map[string]int{labelForKey: 32, labelForIV: 12}, // , labelForSN: 16},
 		},
 	}
 
@@ -536,6 +536,7 @@ const (
 	labelDerived                        = "derived"
 	labelFinished                       = "finished"
 	labelResumption                     = "resumption"
+	labelSequenceNumberEncryption       = "sn"
 )
 
 // struct HkdfLabel {
@@ -660,4 +661,15 @@ func newSelfSigned(name string, alg SignatureScheme, priv crypto.Signer) (*x509.
 	// It is safe to ignore the error here because we're parsing known-good data
 	cert, _ := x509.ParseCertificate(der)
 	return cert, nil
+}
+
+func DeriveMask(key []byte, ciphertext []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	mask := make([]byte, len(ciphertext))
+	block.Encrypt(mask, ciphertext)
+	return mask, nil
 }

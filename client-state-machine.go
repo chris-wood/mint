@@ -512,6 +512,7 @@ func (state clientStateWaitSH) Next(hr handshakeMessageReader) (HandshakeState, 
 	handshakeSecret := HkdfExtract(params.Hash, preHandshakeSecret, dhSecret)
 	clientHandshakeTrafficSecret := deriveSecret(params, handshakeSecret, labelClientHandshakeTrafficSecret, h2)
 	serverHandshakeTrafficSecret := deriveSecret(params, handshakeSecret, labelServerHandshakeTrafficSecret, h2)
+	sequenceNumberSecret := deriveSecret(params, handshakeSecret, labelSequenceNumberEncryption, h0)
 	preMasterSecret := deriveSecret(params, handshakeSecret, labelDerived, h0)
 	masterSecret := HkdfExtract(params.Hash, preMasterSecret, zero)
 
@@ -519,6 +520,7 @@ func (state clientStateWaitSH) Next(hr handshakeMessageReader) (HandshakeState, 
 	logf(logTypeCrypto, "handshake secret: [%d] %x", len(handshakeSecret), handshakeSecret)
 	logf(logTypeCrypto, "client handshake traffic secret: [%d] %x", len(clientHandshakeTrafficSecret), clientHandshakeTrafficSecret)
 	logf(logTypeCrypto, "server handshake traffic secret: [%d] %x", len(serverHandshakeTrafficSecret), serverHandshakeTrafficSecret)
+	logf(logTypeCrypto, "sn secret: [%d] %x", len(sequenceNumberSecret), sequenceNumberSecret)
 	logf(logTypeCrypto, "master secret: [%d] %x", len(masterSecret), masterSecret)
 
 	serverHandshakeKeys := makeTrafficKeys(params, serverHandshakeTrafficSecret)
@@ -532,6 +534,7 @@ func (state clientStateWaitSH) Next(hr handshakeMessageReader) (HandshakeState, 
 		masterSecret:                 masterSecret,
 		clientHandshakeTrafficSecret: clientHandshakeTrafficSecret,
 		serverHandshakeTrafficSecret: serverHandshakeTrafficSecret,
+		sequenceNumberSecret:         sequenceNumberSecret,
 	}
 	toSend := []HandshakeAction{
 		RekeyIn{epoch: EpochHandshakeData, KeySet: serverHandshakeKeys},
@@ -555,6 +558,7 @@ type clientStateWaitEE struct {
 	masterSecret                 []byte
 	clientHandshakeTrafficSecret []byte
 	serverHandshakeTrafficSecret []byte
+	sequenceNumberSecret         []byte
 }
 
 var _ HandshakeState = &clientStateWaitEE{}

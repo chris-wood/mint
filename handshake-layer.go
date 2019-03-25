@@ -31,6 +31,7 @@ const (
 type HandshakeMessage struct {
 	msgType  HandshakeType
 	seq      uint32
+	// headerLen int
 	body     []byte
 	datagram bool
 	offset   uint32 // Used for DTLS
@@ -55,6 +56,7 @@ func (hm *HandshakeMessage) Marshal() []byte {
 	} else {
 		data = make([]byte, handshakeHeaderLenTLS+fragLen)
 	}
+
 	tmp := data
 	tmp = encodeUint(uint64(hm.msgType), 1, tmp)
 	tmp = encodeUint(uint64(hm.length), 3, tmp)
@@ -106,11 +108,21 @@ func (h *HandshakeLayer) HandshakeMessageFromBody(body HandshakeMessageBody) (*H
 		return nil, err
 	}
 
+	// headerLength := handshakeHeaderLenTLS
+	// if h.datagram {
+	// 	if h.conn.Epoch() == EpochClear {
+	// 		headerLength = handshakeHeaderLenDTLS
+	// 	} else {
+	// 		headerLength = handshakeHeaderLenDTLSShort
+	// 	}
+	// }
+
 	m := &HandshakeMessage{
 		msgType:  body.Type(),
 		body:     data,
 		seq:      h.msgSeq,
 		datagram: h.datagram,
+		// headerLen: headerLength,
 		length:   uint32(len(data)),
 	}
 	h.msgSeq++
@@ -132,6 +144,7 @@ type HandshakeLayer struct {
 
 type handshakeLayerFrameDetails struct {
 	datagram bool
+	recordLayer *RecordLayer
 }
 
 func (d handshakeLayerFrameDetails) headerLen() int {
@@ -145,12 +158,12 @@ func (d handshakeLayerFrameDetails) defaultReadLen() int {
 	return d.headerLen() + maxFragmentLen
 }
 
-func (d handshakeLayerFrameDetails) frameLen(hdr []byte) (int, error) {
+func (d handshakeLayerFrameDetails) frameLen(hdr []byte) (int, int, error) {
 	logf(logTypeIO, "Header=%x", hdr)
 	// The length of this fragment (as opposed to the message)
 	// is always the last three bytes for both TLS and DTLS
 	val, _ := decodeUint(hdr[len(hdr)-3:], 3)
-	return int(val), nil
+	return int(val), 0, nil
 }
 
 func NewHandshakeLayerTLS(c *HandshakeContext, r RecordLayer) *HandshakeLayer {
@@ -158,7 +171,7 @@ func NewHandshakeLayerTLS(c *HandshakeContext, r RecordLayer) *HandshakeLayer {
 	h.ctx = c
 	h.conn = r
 	h.datagram = false
-	h.frame = newFrameReader(&handshakeLayerFrameDetails{false})
+	h.frame = newFrameReader(&handshakeLayerFrameDetails{false, &r})
 	h.maxFragmentLen = maxFragmentLen
 	return &h
 }
@@ -168,7 +181,7 @@ func NewHandshakeLayerDTLS(c *HandshakeContext, r RecordLayer) *HandshakeLayer {
 	h.ctx = c
 	h.conn = r
 	h.datagram = true
-	h.frame = newFrameReader(&handshakeLayerFrameDetails{true})
+	h.frame = newFrameReader(&handshakeLayerFrameDetails{true, &r})
 	h.maxFragmentLen = initialMtu // Not quite right
 	return &h
 }
@@ -392,7 +405,6 @@ func (h *HandshakeLayer) ReadMessage() (*HandshakeMessage, error) {
 		hm.seq = uint32(tmp)
 		tmp, hdr = decodeUint(hdr, 3)
 		hm.offset = uint32(tmp)
-
 		return h.newFragmentReceived(hm)
 	}
 
