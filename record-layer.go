@@ -465,13 +465,11 @@ func (r *DefaultRecordLayer) nextRecord(allowOldEpoch bool) (*TLSPlaintext, erro
 			epoch = Epoch(seq >> 48)
 		} else {
 			epoch = Epoch(header[0] & 0x03) // lower two bits of the header
-			// seq, _ = decodeUint(header[1:3], 2)
-			// seq |= uint64(epoch) << 48
-
 			sequenceMask, err := DeriveMask(r.snKey, pt.fragment[0:16]) // 16 bytes
 			if err != nil {
 				panic(err)
 			}
+
 			logf(logTypeIO, "%s Recovering header=%x sequenceMask=%x", r.label, header[1:3], sequenceMask)
 			seqBytes := xor(header[1:3], sequenceMask[0:2])
 			header[1] = seqBytes[0]
@@ -536,7 +534,6 @@ func (r *DefaultRecordLayer) writeRecordWithPadding(pt *TLSPlaintext, cipher *ci
 	var contentType RecordType
 	if cipher.cipher != nil {
 		length += 1 + padLen + cipher.cipher.Overhead()
-		// panic(fmt.Sprintf("Writing application data epoch %d", pt.epoch))
 		contentType = RecordTypeApplicationData
 	} else {
 		contentType = pt.contentType

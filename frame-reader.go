@@ -2,8 +2,6 @@
 // This is used for both TLS Records and TLS Handshake Messages
 package mint
 
-import "fmt"
-
 type framing interface {
 	headerLen() int
 	defaultReadLen() int
@@ -87,7 +85,6 @@ func (f *frameReader) process() (hdr []byte, body []byte, err error) {
 
 		// We have read the header
 		bodyLen, shift, err := f.details.frameLen(f.header)
-		// bodyLen = bodyLen + shift
 
 		// Determine if the header also carried part of the body
 		var prefix []byte
@@ -97,8 +94,6 @@ func (f *frameReader) process() (hdr []byte, body []byte, err error) {
 			needsAdjustment = true
 			prefix = f.working[shift:]
 			header = f.header[0:shift]
-
-			// panic(fmt.Sprintf("Body length %x %d", f.header, bodyLen))
 			f.header = header
 		}
 
@@ -109,15 +104,10 @@ func (f *frameReader) process() (hdr []byte, body []byte, err error) {
 
 		f.body = make([]byte, bodyLen)
 		if needsAdjustment {
-			// panic(fmt.Sprintf("Current state %x %x %x %x %x %d %d %d %d %d", f.header, f.working, f.remainder, header, prefix, f.writeOffset, len(f.body), len(f.header), len(prefix), len(f.working)))
-			fmt.Printf("prepending %x", header)
-			logf(logTypeFrameReader, "Prepending %d %d %x", len(prefix), len(f.body), prefix)
 			f.body = append(prefix, f.body...)
 			f.body = f.body[0:len(f.body) - len(prefix)]
-			logf(logTypeFrameReader, "New body %x", f.body)
 		}
 
-		// panic(fmt.Sprintf("Adjusted body %x", f.body))
 		f.working = f.body
 		f.writeOffset = len(prefix)
 		f.state = kFrameReaderBody

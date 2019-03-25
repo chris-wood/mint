@@ -108,21 +108,11 @@ func (h *HandshakeLayer) HandshakeMessageFromBody(body HandshakeMessageBody) (*H
 		return nil, err
 	}
 
-	// headerLength := handshakeHeaderLenTLS
-	// if h.datagram {
-	// 	if h.conn.Epoch() == EpochClear {
-	// 		headerLength = handshakeHeaderLenDTLS
-	// 	} else {
-	// 		headerLength = handshakeHeaderLenDTLSShort
-	// 	}
-	// }
-
 	m := &HandshakeMessage{
 		msgType:  body.Type(),
 		body:     data,
 		seq:      h.msgSeq,
 		datagram: h.datagram,
-		// headerLen: headerLength,
 		length:   uint32(len(data)),
 	}
 	h.msgSeq++
